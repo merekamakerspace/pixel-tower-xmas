@@ -22,25 +22,32 @@
 #define BIKE1 A3
 #define BIKE2 A0
 
-#define PLAYER_ONE_START 2
-#define PLAYER_TWO_START 58
+#define PLAYER_ONE_START 0
+#define PLAYER_TWO_START 62
 
-#define PLAYER_START_LEN 2
+#define NUM_STEPS 62
+
+#define PLAYER_ONE_FINISH 61
+#define PLAYER_TWO_FINISH 123
+
+
+//#define PLAYER_START_LEN 2
 
 
 enum {RED_PLAYER, BLUE_PLAYER};
 
-enum {  WAITING, COUNT_DOWN, START_GAME, PLAYING, WIN, LOSE, END_GAME };
+enum {WAITING, COUNT_DOWN, START_GAME, PLAYING, WIN, LOSE, END_GAME };
 
 int state = WAITING;
 
 
 CRGB leds[NUM_LEDS];
 
-CRGB player_colour[] = {CRGB::Green, CRGB::Blue};
+CRGB player_colour[] = {CRGB::Blue, CRGB::Red};
 
 int player_start[] = {PLAYER_ONE_START, PLAYER_TWO_START};
-int player_end[] = {PLAYER_ONE_START - PLAYER_START_LEN, PLAYER_TWO_START - PLAYER_START_LEN};
+int player_end[] = {PLAYER_ONE_START, PLAYER_TWO_START};
+int player_finish[] = {PLAYER_ONE_FINISH, PLAYER_TWO_FINISH};
 
 
 unsigned long last_twinkle = millis();
@@ -140,22 +147,19 @@ void drawPlayer(int pid) {
 
 void movePlayer(int player_id) {
 	//Increment player token
-	player_start[player_id]++;
+	//player_start[player_id]++;
 	player_end[player_id]++;
 
-	if (player_start[player_id] == TRACK_LEN) {
-		player_start[player_id] = 0;
+	if (player_end[player_id] >= player_start[player_id] + NUM_STEPS ) {
+		player_end[player_id] = NUM_STEPS + player_start[player_id] - 1;
 	}
 
-	if (player_end[player_id] == TRACK_LEN) {
-		player_end[player_id] = 0;
-	}
 	last_move = millis();
 	Serial.print(player_id);
 	Serial.print(" ");
-	Serial.print(player_start[player_id]);
+	Serial.print(player_end[player_id]);
 	Serial.print(" ");
-	Serial.println(TRACK[player_start[player_id]]);
+	Serial.println(TRACK[player_end[player_id]]);
 
 
 }
@@ -243,7 +247,7 @@ void readADC(int pid) {
 	int val = analogRead(player_adc[pid]) / 6;
 	if (val > 30) {
 		player_energy[pid] += val;
-	
+
 		Serial.print(pid);
 		Serial.print(" ");
 		Serial.print(val);
@@ -299,30 +303,14 @@ void drawPixel(int x, int y, CRGB color) {
 
 
 
-// Add bit to end of players chain
-void growPlayer(int player_id) {
-	player_end[player_id]--;
-
-	if (player_end[player_id] < 0) {
-		player_end[player_id] = TRACK_LEN - 1;
-	}
-
-	if (player_end[player_id] == TRACK_LEN) {
-		player_end[player_id] = 0;
-	}
-	last_move = millis();
-
-}
-
-
 
 void resetGame() {
 	//Reset player positions
 	player_start[0] = PLAYER_ONE_START;
-	player_end[0] = PLAYER_ONE_START - PLAYER_START_LEN;
+	player_end[0] = PLAYER_ONE_START;
 
 	player_start[1] = PLAYER_TWO_START;
-	player_end[1] = PLAYER_TWO_START - PLAYER_START_LEN;
+	player_end[1] = PLAYER_TWO_START;
 
 	player_energy[0] = 0;
 	player_energy[1] = 0;
@@ -335,13 +323,14 @@ void resetGame() {
 
 }
 
-int collision () {
-	if (player_start[0] == player_end[1] ) {
-		Serial.println("Red Wins");
+
+int check_winner () {
+	if (player_end[0] >= NUM_STEPS ) {
+		Serial.println("Blue Wins");
 		return 1;
 	}
-	if (player_start[1] == player_end[0] ) {
-		Serial.println("Blue Wins");
+	if (player_end[1] >= NUM_STEPS ) {
+		Serial.println("Red Wins");
 		return 2;
 	}
 	return 0;
@@ -408,64 +397,9 @@ void setup() {
 
 }
 
-void show_letter(int letter, int start_row) {
-	//FastLED.clear();
-
-	for (int row = 0; row < 8; row++) {
-		if (start_row + row >= 0 ) {
-			byte line = SETIA[letter][row];
-
-			//Serial.println(line);
-			int col = 0;
-			for (byte mask = 00000001; mask > 0; mask <<= 1) { //iterate through bit mask
-				//int pixel = ((start_row + row) * 8) +  col;
-				int pixel  = ((start_row + row) * 8) + (7 - col);
-
-				if ((start_row + row) % 2) {
-					//pixel  = ((start_row + row) * 8) + (7 - col);
-					pixel = ((start_row + row) * 8) +  col;//pixel += 1;
-				}
-
-				if (pixel > 0 && pixel < NUM_LEDS) {
-					if (line & mask) {
-						leds[pixel] = CRGB::Blue;
-						//Serial.print("*");
-					} else {
-						//Serial.print(" ");
-						leds[pixel] = CRGB::Black;
-					}
-
-				}
-
-				//Serial.println(pixel);
-
-				col++;
-			}
-		}
-		//Serial.println();
-	}
-	//FastLED.show();
-}
 
 
 
-int setia_line = 32;
-
-// void showSetia() {
-// 	FastLED.clear();
-// 	show_letter(4, setia_line + 32);
-// 	show_letter(3, setia_line + 24);
-// 	show_letter(2, setia_line + 16);
-// 	show_letter(1, setia_line + 8);
-// 	show_letter(0, setia_line);
-
-
-// 	FastLED.show();
-// 	setia_line--;
-// 	if (setia_line < -32) {
-// 		setia_line = 32;
-// 	}
-// }
 
 
 void colours() {
@@ -512,26 +446,26 @@ int count = 0;
 
 
 void show_logo() {
-  count = random(23) * 8;
-  for (int j = 0; j < 8; j++) {
-    byte line = M_LOGO[j];
+	count = random(23) * 8;
+	for (int j = 0; j < 8; j++) {
+		byte line = M_LOGO[j];
 
-    //Serial.println(line);
+		//Serial.println(line);
 
-    for (byte mask = 00000001; mask > 0; mask <<= 1) { //iterate through bit mask
+		for (byte mask = 00000001; mask > 0; mask <<= 1) { //iterate through bit mask
 
-      if (line & mask) {
-        leds[count] = CRGB::Red;
-        //Serial.print("*");
-      } else {
-        //Serial.print(" ");
-        leds[count] = CRGB::Black;
-      }
-      count++;
-    }
-    ///Serial.println();
-  }
-  FastLED.show();
+			if (line & mask) {
+				leds[count] = CRGB::Red;
+				//Serial.print("*");
+			} else {
+				//Serial.print(" ");
+				leds[count] = CRGB::Black;
+			}
+			count++;
+		}
+		///Serial.println();
+	}
+	FastLED.show();
 }
 
 
@@ -577,33 +511,16 @@ void loop() {
 	case PLAYING:
 		FastLED.clear();
 		readADC(RED_PLAYER);
-		drawTrack();
+		//drawTrack();
 		drawPlayer(RED_PLAYER);
 		readADC(BLUE_PLAYER);
 		drawPlayer(BLUE_PLAYER);
 		FastLED.show();
-		if (collision()) {
+		if (check_winner()) {
 			state = WIN;
 			break;
 		}
 
-
-
-		if (millis() - last_grow > 1000) {
-			growPlayer(RED_PLAYER);
-			growPlayer(BLUE_PLAYER);
-			last_grow = millis();
-
-			drawPlayer(RED_PLAYER);
-			drawPlayer(BLUE_PLAYER);
-
-			FastLED.show();
-
-		}
-
-		if (collision()) {
-			state = WIN;
-		}
 		wait(delay_time);
 
 		break;
@@ -614,16 +531,16 @@ void loop() {
 			delay(10);
 		}
 		//RED Wins
-		if (collision() ==  1) {
-			for (int i = 0; i < NUM_LEDS; i++) {
-				leds[i] = player_colour[0];
+		if (check_winner() ==  1) {
+			for (int i = 0; i < TRACK_LEN; i++) {
+				leds[TRACK[i]] = player_colour[0];
 			}
 
 		}
 		// Blue Wins
-		if (collision() ==  2) {
-			for (int i = 0; i < NUM_LEDS; i++) {
-				leds[i] = player_colour[1];
+		if (check_winner() ==  2) {
+			for (int i = 0; i < TRACK_LEN; i++) {
+				leds[TRACK[i]] = player_colour[1];
 			}
 
 		}
@@ -656,3 +573,58 @@ void loop() {
 }
 
 
+// void show_letter(int letter, int start_row) {
+// 	//FastLED.clear();
+
+// 	for (int row = 0; row < 8; row++) {
+// 		if (start_row + row >= 0 ) {
+// 			byte line = SETIA[letter][row];
+
+// 			//Serial.println(line);
+// 			int col = 0;
+// 			for (byte mask = 00000001; mask > 0; mask <<= 1) { //iterate through bit mask
+// 				//int pixel = ((start_row + row) * 8) +  col;
+// 				int pixel  = ((start_row + row) * 8) + (7 - col);
+
+// 				if ((start_row + row) % 2) {
+// 					//pixel  = ((start_row + row) * 8) + (7 - col);
+// 					pixel = ((start_row + row) * 8) +  col;//pixel += 1;
+// 				}
+
+// 				if (pixel > 0 && pixel < NUM_LEDS) {
+// 					if (line & mask) {
+// 						leds[pixel] = CRGB::Blue;
+// 						//Serial.print("*");
+// 					} else {
+// 						//Serial.print(" ");
+// 						leds[pixel] = CRGB::Black;
+// 					}
+
+// 				}
+
+// 				//Serial.println(pixel);
+
+// 				col++;
+// 			}
+// 		}
+// 		//Serial.println();
+// 	}
+// 	//FastLED.show();
+// }
+// int setia_line = 32;
+
+// void showSetia() {
+// 	FastLED.clear();
+// 	show_letter(4, setia_line + 32);
+// 	show_letter(3, setia_line + 24);
+// 	show_letter(2, setia_line + 16);
+// 	show_letter(1, setia_line + 8);
+// 	show_letter(0, setia_line);
+
+
+// 	FastLED.show();
+// 	setia_line--;
+// 	if (setia_line < -32) {
+// 		setia_line = 32;
+// 	}
+// }
