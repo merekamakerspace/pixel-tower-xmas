@@ -156,6 +156,8 @@ void movePlayer(int player_id) {
 	// }
 
 	last_move = millis();
+	Serial.print(last_move);
+	Serial.print(" ");
 	Serial.print(player_id);
 	Serial.print(" ");
 	Serial.print(player_end[player_id]);
@@ -320,7 +322,7 @@ void resetGame() {
 	FastLED.show();
 	fade_rate = 100;
 	last_grow = millis();
-
+	last_move = millis();
 	Serial.println("Reset Game");
 }
 
@@ -466,7 +468,6 @@ void show_logo() {
 
 
 unsigned long setia_delay = millis();
-
 void loop() {
 
 
@@ -501,6 +502,7 @@ void loop() {
 		state = PLAYING;
 		drawPlayer(RED_PLAYER);
 		drawPlayer(BLUE_PLAYER);
+		last_move = millis();
 		break;
 
 	case PLAYING:
@@ -517,6 +519,22 @@ void loop() {
 		if (check_winner()) {
 			state = WIN;
 			break;
+		}
+
+		// Timeout game after 30s
+		if (millis() - last_move > 30000) {
+			Serial.println("Timeout");
+			resetGame();
+			//Show winner
+			state = WAITING;
+			fade_rate = 150;
+			FastLED.clear();
+			//show_logo();
+			for (int i = 0 ; i < 20; i++) {
+				fadeAll();
+				delay(100);
+			}
+
 		}
 
 		wait(delay_time);
@@ -626,18 +644,18 @@ void loop() {
 // 		setia_line = 32;
 // 	}
 // }
-	// //check that doesn't wrap around 0
-	// if (player_end[pid] > player_start[pid]) {
+// //check that doesn't wrap around 0
+// if (player_end[pid] > player_start[pid]) {
 
-	// 	for (int i = TRACK_LEN - 1; i >= player_end[pid]; i--) {
-	// 		leds[TRACK[i]] = player_colour[pid];
-	// 	}
+// 	for (int i = TRACK_LEN - 1; i >= player_end[pid]; i--) {
+// 		leds[TRACK[i]] = player_colour[pid];
+// 	}
 
-	// 	for (int i = 0; i <= player_start[pid]; i++ ) {
-	// 		leds[TRACK[i]] = player_colour[pid];
-	// 	}
+// 	for (int i = 0; i <= player_start[pid]; i++ ) {
+// 		leds[TRACK[i]] = player_colour[pid];
+// 	}
 
-	// }
+// }
 // void drawTrack() {
 // 	for (int i = 0; i < TRACK_LEN; i++) {
 // 		leds[TRACK[i]] = CRGB(10, 10, 10);
