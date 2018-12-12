@@ -61,7 +61,7 @@ unsigned long last_grow = millis();
 int player_energy[] = {0, 0};
 int player_adc[] = {BIKE1, BIKE2};
 
-int max_energy[] = {100, 100};
+int max_energy[] = {110, 110};
 
 
 
@@ -126,22 +126,23 @@ void show_digit(int digit, int start_row) {
 
 void drawPlayer(int pid) {
 
-	for (int i = player_start[pid]; i >= player_end[pid]; i--) {
+	// Serial.print(pid);
+	// Serial.print(" ");
+	// Serial.print(player_start[pid]);
+	// Serial.print(" ");
+	// Serial.print(player_end[pid]);
+	// Serial.print(" ");
+	// Serial.println(TRACK[player_end[pid]]);
+
+
+	for (int i = player_start[pid]; i <= player_end[pid]; i++) {
+		// Serial.print(pid);
+		// Serial.print(" ");
+		// Serial.println(TRACK[i]);
 		leds[TRACK[i]] = player_colour[pid];
 	}
 
-	//check that doesn't wrap around 0
-	if (player_end[pid] > player_start[pid]) {
 
-		for (int i = TRACK_LEN - 1; i >= player_end[pid]; i--) {
-			leds[TRACK[i]] = player_colour[pid];
-		}
-
-		for (int i = 0; i <= player_start[pid]; i++ ) {
-			leds[TRACK[i]] = player_colour[pid];
-		}
-
-	}
 }
 
 
@@ -150,9 +151,9 @@ void movePlayer(int player_id) {
 	//player_start[player_id]++;
 	player_end[player_id]++;
 
-	if (player_end[player_id] >= player_start[player_id] + NUM_STEPS ) {
-		player_end[player_id] = NUM_STEPS + player_start[player_id] - 1;
-	}
+	// if (player_end[player_id] >= player_finish[player_id] ) {
+	// 	player_end[player_id] = player_finish[player_id];
+	// }
 
 	last_move = millis();
 	Serial.print(player_id);
@@ -259,7 +260,7 @@ void readADC(int pid) {
 	if (player_energy[pid] > max_energy[pid]) {
 		Serial.print(pid);
 		Serial.print(" moved ");
-		Serial.println(player_start[pid]);
+		Serial.println(player_end[pid]);
 		player_energy[pid] = 0;
 		movePlayer(pid);
 		//drawPlayer(pid);
@@ -320,16 +321,16 @@ void resetGame() {
 	fade_rate = 100;
 	last_grow = millis();
 
-
+	Serial.println("Reset Game");
 }
 
 
 int check_winner () {
-	if (player_end[0] >= NUM_STEPS ) {
+	if (player_end[0] >= player_finish[0] ) {
 		Serial.println("Blue Wins");
 		return 1;
 	}
-	if (player_end[1] >= NUM_STEPS ) {
+	if (player_end[1] >= player_finish[1] ) {
 		Serial.println("Red Wins");
 		return 2;
 	}
@@ -436,12 +437,6 @@ void count_down() {
 }
 
 
-void drawTrack() {
-	for (int i = 0; i < TRACK_LEN; i++) {
-		leds[TRACK[i]] = CRGB(10, 10, 10);
-	}
-}
-
 int count = 0;
 
 
@@ -511,9 +506,12 @@ void loop() {
 	case PLAYING:
 		FastLED.clear();
 		readADC(RED_PLAYER);
-		//drawTrack();
-		drawPlayer(RED_PLAYER);
 		readADC(BLUE_PLAYER);
+
+		//FastLED.show();
+		//drawTrack();
+
+		drawPlayer(RED_PLAYER);
 		drawPlayer(BLUE_PLAYER);
 		FastLED.show();
 		if (check_winner()) {
@@ -626,5 +624,22 @@ void loop() {
 // 	setia_line--;
 // 	if (setia_line < -32) {
 // 		setia_line = 32;
+// 	}
+// }
+	// //check that doesn't wrap around 0
+	// if (player_end[pid] > player_start[pid]) {
+
+	// 	for (int i = TRACK_LEN - 1; i >= player_end[pid]; i--) {
+	// 		leds[TRACK[i]] = player_colour[pid];
+	// 	}
+
+	// 	for (int i = 0; i <= player_start[pid]; i++ ) {
+	// 		leds[TRACK[i]] = player_colour[pid];
+	// 	}
+
+	// }
+// void drawTrack() {
+// 	for (int i = 0; i < TRACK_LEN; i++) {
+// 		leds[TRACK[i]] = CRGB(10, 10, 10);
 // 	}
 // }
